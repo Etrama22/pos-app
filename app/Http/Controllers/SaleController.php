@@ -23,47 +23,63 @@ class SaleController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
-            'products' => 'required|array',
-            'products.*.id' => 'required|exists:products,id',
-            'products.*.quantity' => 'required|integer|min:1',
-        ]);
-
         $totalPrice = 0;
-        foreach ($request->products as $productData) {
-            $product = Product::find($productData['id']);
-            $totalPrice += $product->price * $productData['quantity'];
+        $products = $request->input('products', []);
+
+        foreach ($products as $product) {
+            $productModel = Product::find($product['id']);
+            $totalPrice += $productModel->price * $product['quantity'];
+
+            // Reduce stock
+            $productModel->stock -= $product['quantity'];
+            $productModel->save();
         }
+
+        $discount = $request->input('discount', 0);
+        $finalPrice = $totalPrice * (1 - $discount / 100);
 
         $sale = Sale::create([
             'user_id' => Auth::id(),
             'total_price' => $totalPrice,
+            'discount' => $discount,
+            'final_price' => $finalPrice,
         ]);
 
-        foreach ($request->products as $productData) {
-            $product = Product::find($productData['id']);
-            $product->stock -= $productData['quantity'];
-            $product->save();
+        foreach ($products as $product) {
+            $sale->products()->attach($product['id'], [
+                'quantity' => $product['quantity'],
+                'price' => Product::find($product['id'])->price,
+            ]);
         }
 
-        return redirect()->route('sales.index')->with('success', 'Sale completed successfully.');
+        // Redirect to the receipt view
+        return redirect()->route('sales.receipt', $sale->id)->with('success', 'Sale completed successfully!');
     }
 
-    public function history()
+    public function receipt($id)
     {
-        $sales = Sale::with('user')->where('user_id', Auth::id())->get();
-        return view('sales.history', compact('sales'));
+        $sale = Sale::with('products')->find($id);
+        return view('sales.receipt', compact('sale'));
     }
 
-    public function show(Request $request)
+    public function applyDiscount(Request $request)
     {
-        $startDate = $request->input('start_date');
-        $endDate = $request->input('end_date');
+        $request->validate([
+            'sale_id' => 'required|exists:sales,id',
+            'discount' => 'required|numeric|min:0|max:100',
+        ]);
 
-        $sales = Sale::with('user')
-            ->whereBetween('created_at', [$startDate, $endDate])
-            ->get();
+        $sale = Sale::find($request->sale_id);
+        $sale->total_price -= ($sale->total_price * ($request->discount / 100));
+        $sale->discount = $request->discount;
+        $sale->save();
 
-        return view('sales.report', compact('sales', 'startDate', 'endDate'));
+        return redirect()->route('sales.receipt', $sale->id);
+    }
+
+    public function show($id)
+    {
+        $sale = Sale::with('products.product')->find($id);
+        return view('sales.report', compact('sale'));
     }
 }

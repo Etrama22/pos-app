@@ -17,7 +17,7 @@
             <button type="submit" class="btn btn-primary">Generate Report</button>
         </form>
 
-        @if (isset($sales))
+        @if (isset($sale))
             <table class="table table-bordered mt-3">
                 <thead>
                     <tr>
@@ -27,11 +27,11 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach ($sales as $sale)
+                    @foreach ($sale as $sales)
                         <tr>
-                            <td>{{ $sale->user->name }}</td>
-                            <td>{{ $sale->total_price }}</td>
-                            <td>{{ $sale->created_at }}</td>
+                            <td>{{ $sales->user->name }}</td>
+                            <td>{{ $sales->total_price }}</td>
+                            <td>{{ $sales->created_at }}</td>
                         </tr>
                     @endforeach
                 </tbody>

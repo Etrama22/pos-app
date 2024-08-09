@@ -9,7 +9,7 @@ class Sale extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['user_id', 'total_price'];
+    protected $fillable = ['user_id', 'total_price', 'discount', 'final_price']; // Tambahkan final_price
 
     public function user()
     {
@@ -18,6 +18,7 @@ class Sale extends Model
 
     public function products()
     {
-        return $this->belongsToMany(Product::class)->withPivot('quantity', 'price');
+        return $this->belongsToMany(Product::class, 'sale_products')
+            ->withPivot('quantity', 'price'); // Assuming a pivot table named 'sale_products'
     }
 }

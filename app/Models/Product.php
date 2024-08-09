@@ -9,10 +9,10 @@ class Product extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'category', 'price', 'stock'];
+    protected $fillable = ['name', 'price', 'category', 'stock'];
 
     public function sales()
     {
-        return $this->belongsToMany(Sale::class)->withPivot('quantity', 'price');
+        return $this->belongsToMany(Sale::class, 'sale_products')->withPivot('quantity', 'price');
     }
 }
